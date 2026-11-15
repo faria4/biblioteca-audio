@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Biblioteca em Áudio</title>
+<meta name="description" content="Podcasts em português sobre os livros da biblioteca.">
+<meta name="theme-color" content="#1f2a24">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Biblioteca">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f2a24'/%3E%3Cpath d='M18 40V30a14 14 0 0 1 28 0v10' fill='none' stroke='%23e8b04b' stroke-width='5' stroke-linecap='round'/%3E%3Crect x='14' y='36' width='9' height='14' rx='3' fill='%23e8b04b'/%3E%3Crect x='41' y='36' width='9' height='14' rx='3' fill='%23e8b04b'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f1e7; --surface:#fffdf8; --ink:#1d2420; --muted:#68706a; --line:#e4dccb;
+  --accent:#1f5f46; --accent-ink:#ffffff; --gold:#c98a1a; --soft:#ebe4d4; --done:#2e7d4f;
+  --player:#1f2a24; --player-ink:#f4efe4; --player-muted:#a9b3ab;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#141815; --surface:#1c221e; --ink:#ede8dc; --muted:#9aa39c; --line:#2c342e;
+    --accent:#5fbf8f; --accent-ink:#0f1411; --gold:#e8b04b; --soft:#252c27; --done:#6fd39a;
+    --player:#0c0f0d; --player-ink:#f4efe4; --player-muted:#8f9a92;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:190px}
+button{font:inherit;color:inherit;cursor:pointer}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+header{padding:36px 0 12px}
+h1{font-family:Fraunces,Georgia,serif;font-size:clamp(30px,6vw,44px);line-height:1.1;margin:0 0 8px;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 6px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 14px;font-size:15px;color:var(--muted)}
+.stat b{color:var(--ink);font-weight:600}
+
+.resume{display:none;margin:18px 0 4px;background:var(--accent);color:var(--accent-ink);border:0;border-radius:16px;padding:16px 18px;width:100%;text-align:left;align-items:center;gap:14px}
+.resume.show{display:flex}
+.resume .ico{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;flex:none}
+.resume small{display:block;opacity:.85;font-size:14px}
+.resume strong{display:block;font-size:17px;line-height:1.3}
+
+.tools{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0 10px;border-bottom:1px solid var(--line);margin-top:14px}
+.search{width:100%;padding:13px 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:17px}
+.search:focus{outline:2px solid var(--accent);outline-offset:1px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-size:15px;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.toggle{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--muted);margin-top:8px}
+.toggle input{width:20px;height:20px;accent-color:var(--accent)}
+
+section h2{font-family:Fraunces,Georgia,serif;font-size:22px;margin:30px 0 12px}
+.grid{display:grid;gap:12px}
+.book{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;grid-template-columns:auto 1fr;gap:4px 14px}
+.num{grid-row:span 3;width:44px;height:44px;border-radius:12px;background:var(--soft);display:grid;place-items:center;font-weight:600;font-size:16px;color:var(--muted)}
+.book.ready .num{background:var(--gold);color:#fff}
+.title{font-weight:600;font-size:18px;line-height:1.3}
+.author{color:var(--muted);font-size:15px}
+.parts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.part{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 14px;min-height:48px;font-size:16px;font-weight:500;position:relative;overflow:hidden}
+.part .bar{position:absolute;left:0;bottom:0;height:3px;background:var(--accent)}
+.part.playing{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.part.heard .lbl::after{content:" ✓";color:var(--done)}
+.part svg{flex:none}
+.soon{color:var(--muted);font-size:15px;margin-top:8px;font-style:italic}
+.empty{color:var(--muted);text-align:center;padding:40px 0}
+.note{color:var(--muted);font-size:14px;text-align:center;margin:36px 0 0}
+
+.player{position:fixed;left:0;right:0;bottom:0;background:var(--player);color:var(--player-ink);padding:14px 0 calc(14px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .25s ease;z-index:10;box-shadow:0 -8px 30px rgba(0,0,0,.25)}
+.player.show{transform:none}
+.p-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.p-title{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-part{color:var(--player-muted);font-size:14px;flex:none}
+.seek{width:100%;margin:12px 0 2px;accent-color:var(--gold);height:28px}
+.times{display:flex;justify-content:space-between;font-size:13px;color:var(--player-muted);font-variant-numeric:tabular-nums}
+.ctrls{display:flex;justify-content:center;align-items:center;gap:18px;margin-top:6px}
+.cbtn{background:none;border:0;color:var(--player-ink);width:56px;height:56px;border-radius:50%;display:grid;place-items:center;position:relative}
+.cbtn small{position:absolute;font-size:11px;font-weight:600;top:50%;left:50%;transform:translate(-50%,-38%)}
+.play{background:var(--gold);color:#1a1a1a;width:68px;height:68px}
+.speed{background:rgba(255,255,255,.1);border:0;color:var(--player-ink);border-radius:10px;padding:8px 10px;font-size:15px;font-weight:600;min-width:58px}
+.status{font-size:13px;color:var(--player-muted);text-align:center;min-height:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Biblioteca em Áudio</h1>
+    <p class="sub">Conversas em português sobre grandes livros. Escolha um livro e toque em uma parte para ouvir.</p>
+    <div class="stats" id="stats"></div>
+    <button class="resume" id="resume" type="button">
+      <span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></span>
+      <span><small>Continuar ouvindo</small><strong id="resumeTxt"></strong></span>
+    </button>
+  </header>
+
+  <div class="tools">
+    <input class="search" id="q" type="search" placeholder="Buscar livro ou autor" autocomplete="off">
+    <div class="chips" id="chips"></div>
+    <label class="toggle"><input type="checkbox" id="onlyReady"> Mostrar só os que já têm áudio</label>
+  </div>
+
+  <main id="list"></main>
+  <p class="note">Os áudios novos aparecem aqui automaticamente assim que são publicados.</p>
+</div>
+
+<div class="player" id="player" aria-label="Player">
+  <div class="wrap">
+    <div class="p-top"><div class="p-title" id="pTitle"></div><div class="p-part" id="pPart"></div></div>
+    <input class="seek" id="seek" type="range" min="0" max="1000" value="0" aria-label="Posição">
+    <div class="times"><span id="tCur">0:00</span><span id="tDur">0:00</span></div>
+    <div class="ctrls">
+      <button class="speed" id="speed" type="button" aria-label="Velocidade">1x</button>
+      <button class="cbtn" id="back" type="button" aria-label="Voltar 15 segundos"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v4h4"/></svg><small>15</small></button>
+      <button class="cbtn play" id="play" type="button" aria-label="Tocar"><svg id="playIco" width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+      <button class="cbtn" id="fwd" type="button" aria-label="Avançar 30 segundos"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.5-5.8"/><path d="M20 4v4h-4"/></svg><small>30</small></button>
+      <button class="speed" id="next" type="button" aria-label="Próxima parte">Próx.</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+</div>
+<audio id="audio" preload="metadata"></audio>
+
+<script>
+/* ===== Lista de livros: o número de cada livro é o que vai no nome do arquivo de áudio ===== */
+const BOOKS = [
+ [1,"Os 5 Desafios das Equipes","Patrick Lencioni","Liderança e Equipes"],
+ [2,"The Psychology of Money","Morgan Housel","Psicologia, Decisão e Dinheiro"],
+ [3,"How to Win Friends and Influence People","Dale Carnegie","Vendas, Marketing e Persuasão"],
+ [4,"A Startup Enxuta","Eric Ries","Empreendedorismo e Startups"],
+ [5,"O Poder do Hábito","Charles Duhigg","Hábitos e Produtividade"],
+ [6,"Good Strategy Bad Strategy","Richard Rumelt","Estratégia e Gestão"],
+ [7,"Factfulness","Hans Rosling","História e Sociedade"],
+ [8,"A Brief History of Time","Stephen Hawking","Ciência e Tecnologia"],
+ [9,"Extreme Ownership","Jocko Willink e Leif Babin","Liderança e Equipes"],
+ [10,"Thinking, Fast and Slow","Daniel Kahneman","Psicologia, Decisão e Dinheiro"],
+ [11,"Influence: The Psychology of Persuasion","Robert Cialdini","Vendas, Marketing e Persuasão"],
+ [12,"Zero to One","Peter Thiel","Empreendedorismo e Startups"],
+ [13,"Atomic Habits","James Clear","Hábitos e Produtividade"],
+ [14,"The Goal","Eliyahu Goldratt","Estratégia e Gestão"],
+ [15,"Why Nations Fail","Daron Acemoglu e James Robinson","História e Sociedade"],
+ [16,"The Selfish Gene","Richard Dawkins","Ciência e Tecnologia"],
+ [17,"Leaders Eat Last","Simon Sinek","Liderança e Equipes"],
+ [18,"Poor Charlie's Almanack","Charles Munger","Psicologia, Decisão e Dinheiro"],
+ [19,"Never Split the Difference","Chris Voss","Vendas, Marketing e Persuasão"],
+ [20,"The Hard Thing About Hard Things","Ben Horowitz","Empreendedorismo e Startups"],
+ [21,"Deep Work","Cal Newport","Hábitos e Produtividade"],
+ [22,"High Output Management","Andrew Grove","Estratégia e Gestão"],
+ [23,"Guns, Germs, and Steel","Jared Diamond","História e Sociedade"],
+ [24,"Superintelligence","Nick Bostrom","Ciência e Tecnologia"],
+ [25,"Radical Candor","Kim Scott","Liderança e Equipes"],
+ [26,"A Lógica do Cisne Negro","Nassim Nicholas Taleb","Psicologia, Decisão e Dinheiro"],
+ [27,"Spin Selling: Alcançando Excelência em Vendas","Neil Rackham","Vendas, Marketing e Persuasão"],
+ [28,"Ponto de Inflexão","Flávio Augusto da Silva","Empreendedorismo e Startups"],
+ [29,"A Arte de Fazer Acontecer","David Allen","Hábitos e Produtividade"],
+ [30,"The Effective Executive","Peter Drucker","Estratégia e Gestão"],
+ [31,"The Rational Optimist","Matt Ridley","História e Sociedade"],
+ [32,"The Coming Wave","Mustafa Suleyman e Michael Bhaskar","Ciência e Tecnologia"],
+ [33,"The Culture Code","Daniel Coyle","Liderança e Equipes"],
+ [34,"Antifrágil","Nassim Nicholas Taleb","Psicologia, Decisão e Dinheiro"],
+ [35,"Receita Previsível","Aaron Ross","Vendas, Marketing e Persuasão"],
+ [36,"Vai Lá e Faz","Tiago Mattos","Empreendedorismo e Startups"],
+ [37,"Blue Ocean Strategy","W. Chan Kim e Renée Mauborgne","Estratégia e Gestão"],
+ [38,"The Lessons of History","Will e Ariel Durant","História e Sociedade"],
+ [39,"The Structure of Scientific Revolutions","Thomas Kuhn","Ciência e Tecnologia"],
+ [40,"Multipliers","Liz Wiseman","Liderança e Equipes"],
+ [41,"A Mente Moralista","Jonathan Haidt","Psicologia, Decisão e Dinheiro"],
+ [42,"Contagious","Jonah Berger","Vendas, Marketing e Persuasão"],
+ [43,"Inspired","Marty Cagan","Empreendedorismo e Startups"],
+ [44,"Measure What Matters","John Doerr","Estratégia e Gestão"],
+ [45,"The Dawn of Everything","David Graeber e David Wengrow","História e Sociedade"],
+ [46,"Complexity","M. Mitchell Waldrop","Ciência e Tecnologia"],
+ [47,"Behave","Robert Sapolsky","Psicologia, Decisão e Dinheiro"],
+ [48,"This Is Marketing","Seth Godin","Vendas, Marketing e Persuasão"],
+ [49,"Hacking Growth","Sean Ellis e Morgan Brown","Empreendedorismo e Startups"],
+ [50,"Traction","Gino Wickman","Estratégia e Gestão"],
+ [51,"Scale","Geoffrey West","Ciência e Tecnologia"],
+ [52,"Finite and Infinite Games","James Carse","Psicologia, Decisão e Dinheiro"],
+ [53,"Como Usar a Internet para Alavancar suas Vendas ou Criar um Negócio Digital do Zero","Erico Rocha","Vendas, Marketing e Persuasão"],
+ [54,"Blitzscaling","Reid Hoffman e Chris Yeh","Empreendedorismo e Startups"],
+ [55,"Understanding Michael Porter","Joan Magretta","Estratégia e Gestão"],
+ [56,"The Making of the Atomic Bomb","Richard Rhodes","Ciência e Tecnologia"],
+ [57,"The Innovator's Dilemma","Clayton Christensen","Empreendedorismo e Startups"],
+ [58,"Scrum: A Arte de Fazer o Dobro do Trabalho na Metade do Tempo","Jeff Sutherland","Estratégia e Gestão"],
+ [59,"Gödel, Escher, Bach","Douglas Hofstadter","Ciência e Tecnologia"]
+].map(([n,t,a,th])=>({n,t,a,th,parts:{}}));
+
+const THEMES = ["Liderança e Equipes","Psicologia, Decisão e Dinheiro","Vendas, Marketing e Persuasão","Empreendedorismo e Startups","Hábitos e Produtividade","Estratégia e Gestão","História e Sociedade","Ciência e Tecnologia"];
+
+/* ===== Armazenamento local (progresso de cada ouvinte, no próprio aparelho) ===== */
+const store = {
+  get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+let progress = store.get("bib.progress",{});   // "n-p" -> {t, d, heard}
+let last = store.get("bib.last",null);        // {n,p}
+let speedIdx = store.get("bib.speed",0);
+const SPEEDS=[1,1.1,1.25,1.5,0.9];
+
+/* ===== Descobre os áudios publicados nas Releases do repositório ===== */
+function repoInfo(){
+  const host=location.hostname, path=location.pathname.split("/").filter(Boolean);
+  if(host.endsWith(".github.io")){
+    const owner=host.replace(".github.io","");
+    const repo=path.length?path[0]:host;
+    return {owner,repo};
+  }
+  return null;
+}
+const AUDIO_RE=/^(\d{1,3})(?:[-_. ]+(?:p(?:arte)?[-_. ]?)?(\d))?\.(m4a|mp3|aac|mp4|ogg|wav)$/i;
+
+async function loadAudios(){
+  const info=repoInfo();
+  const cacheKey="bib.assets";
+  let assets=null;
+  if(info){
+    try{
+      const r=await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/releases?per_page=100`,{headers:{Accept:"application/vnd.github+json"}});
+      if(r.ok){
+        const rels=await r.json();
+        assets=[];
+        rels.forEach(rel=>(rel.assets||[]).forEach(a=>assets.push({name:a.name,url:a.browser_download_url})));
+        store.set(cacheKey,{at:Date.now(),assets});
+      }
+    }catch(e){}
+  }
+  if(!assets){ const c=store.get(cacheKey,null); assets=c?c.assets:[]; }
+  assets.forEach(a=>{
+    const m=a.name.match(AUDIO_RE); if(!m) return;
+    const b=BOOKS.find(x=>x.n===parseInt(m[1],10)); if(!b) return;
+    b.parts[m[2]?parseInt(m[2],10):1]=a.url;
+  });
+}
+
+/* ===== Interface ===== */
+const $=id=>document.getElementById(id);
+let theme="Todos", query="", onlyReady=store.get("bib.onlyReady",false);
+$("onlyReady").checked=onlyReady;
+
+const fmt=s=>{if(!isFinite(s)||s<0)s=0;s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=String(s%60).padStart(2,"0");return h?`${h}:${String(m).padStart(2,"0")}:${x}`:`${m}:${x}`};
+const norm=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+const isReady=b=>Object.keys(b.parts).length>0;
+const partKeys=b=>Object.keys(b.parts).map(Number).sort((a,b)=>a-b);
+const playSvg='<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+
+function renderChips(){
+  $("chips").innerHTML=["Todos",...THEMES].map(t=>`<button class="chip" type="button" aria-pressed="${t===theme}" data-t="${t}">${t}</button>`).join("");
+}
+function renderStats(){
+  const ready=BOOKS.filter(isReady).length;
+  const eps=BOOKS.reduce((s,b)=>s+partKeys(b).length,0);
+  const heard=Object.values(progress).filter(p=>p.heard).length;
+  $("stats").innerHTML=`<span class="stat"><b>${ready}</b> de ${BOOKS.length} livros com áudio</span><span class="stat"><b>${eps}</b> episódios</span><span class="stat"><b>${heard}</b> ouvidos</span>`;
+}
+function renderResume(){
+  const el=$("resume");
+  if(last){const b=BOOKS.find(x=>x.n===last.n); if(b&&b.parts[last.p]){
+    const pr=progress[`${b.n}-${last.p}`];
+    $("resumeTxt").textContent=`${b.t} · Parte ${last.p}${pr&&pr.t?` · ${fmt(pr.t)}`:""}`;
+    el.classList.add("show"); return;}}
+  el.classList.remove("show");
+}
+function bookCard(b){
+  const ready=isReady(b);
+  let parts="";
+  if(ready){
+    parts='<div class="parts">'+partKeys(b).map(p=>{
+      const k=`${b.n}-${p}`, pr=progress[k]||{}, pct=pr.d?Math.min(100,pr.t/pr.d*100):0;
+      const playing=cur&&cur.n===b.n&&cur.p===p;
+      return `<button class="part${pr.heard?" heard":""}${playing?" playing":""}" type="button" data-n="${b.n}" data-p="${p}">${playSvg}<span class="lbl">Parte ${p}</span>${pct&&!pr.heard?`<span class="bar" style="width:${pct}%"></span>`:""}</button>`;
+    }).join("")+"</div>";
+  } else parts='<div class="soon">Em breve</div>';
+  return `<article class="book${ready?" ready":""}"><div class="num">${b.n}</div><div class="title">${b.t}</div><div class="author">${b.a}</div><div>${parts}</div></article>`;
+}
+function render(){
+  const q=norm(query);
+  let list=BOOKS.filter(b=>(theme==="Todos"||b.th===theme)&&(!q||norm(b.t+" "+b.a).includes(q))&&(!onlyReady||isReady(b)));
+  const groups=(theme==="Todos"?THEMES:[theme]).map(t=>[t,list.filter(b=>b.th===t)]).filter(g=>g[1].length);
+  $("list").innerHTML=groups.length?groups.map(([t,bs])=>`<section><h2>${t}</h2><div class="grid">${bs.map(bookCard).join("")}</div></section>`).join(""):`<p class="empty">Nenhum livro encontrado.</p>`;
+  renderStats(); renderResume();
+}
+
+$("chips").addEventListener("click",e=>{const c=e.target.closest(".chip");if(!c)return;theme=c.dataset.t;renderChips();render();});
+$("q").addEventListener("input",e=>{query=e.target.value;render();});
+$("onlyReady").addEventListener("change",e=>{onlyReady=e.target.checked;store.set("bib.onlyReady",onlyReady);render();});
+$("list").addEventListener("click",e=>{const p=e.target.closest(".part");if(!p)return;start(+p.dataset.n,+p.dataset.p,true);});
+$("resume").addEventListener("click",()=>last&&start(last.n,last.p,true));
+
+/* ===== Player ===== */
+const audio=$("audio"); let cur=null, seeking=false, lastSave=0;
+function start(n,p,autoplay){
+  const b=BOOKS.find(x=>x.n===n); if(!b||!b.parts[p]) return;
+  if(cur&&cur.n===n&&cur.p===p){ autoplay&&(audio.paused?audio.play():audio.pause()); return; }
+  cur={n,p}; last={n,p}; store.set("bib.last",last);
+  audio.src=b.parts[p];
+  audio.playbackRate=SPEEDS[speedIdx];
+  const pr=progress[`${n}-${p}`];
+  audio.dataset.resume=(pr&&!pr.heard&&pr.t>5)?pr.t:0;
+  $("pTitle").textContent=b.t; $("pPart").textContent=`Parte ${p}`;
+  $("player").classList.add("show"); $("status").textContent="Carregando…";
+  if(autoplay) audio.play().catch(()=>{$("status").textContent="Toque no play para começar";});
+  if("mediaSession" in navigator){
+    navigator.mediaSession.metadata=new MediaMetadata({title:`${b.t} · Parte ${p}`,artist:b.a,album:"Biblioteca em Áudio"});
+  }
+  render();
+}
+audio.addEventListener("loadedmetadata",()=>{
+  const r=+audio.dataset.resume; if(r&&r<audio.duration-5) audio.currentTime=r;
+  audio.playbackRate=SPEEDS[speedIdx];
+  $("tDur").textContent=fmt(audio.duration);
+});
+audio.addEventListener("playing",()=>{$("status").textContent="";setIcon(true);});
+audio.addEventListener("pause",()=>{setIcon(false);save(true);});
+audio.addEventListener("waiting",()=>{$("status").textContent="Carregando…";});
+audio.addEventListener("error",()=>{$("status").textContent="Não foi possível tocar este áudio. Verifique a internet e tente de novo.";});
+audio.addEventListener("timeupdate",()=>{
+  if(!seeking&&audio.duration) $("seek").value=Math.round(audio.currentTime/audio.duration*1000);
+  $("tCur").textContent=fmt(audio.currentTime);
+  if(Date.now()-lastSave>5000) save();
+});
+audio.addEventListener("ended",()=>{
+  if(!cur) return;
+  const k=`${cur.n}-${cur.p}`; progress[k]={t:0,d:audio.duration,heard:true}; store.set("bib.progress",progress);
+  render(); playNext();
+});
+function save(force){
+  if(!cur||!audio.duration) return; lastSave=Date.now();
+  const k=`${cur.n}-${cur.p}`, prev=progress[k]||{};
+  const heard=prev.heard||audio.currentTime>audio.duration*0.95;
+  progress[k]={t:audio.currentTime,d:audio.duration,heard};
+  store.set("bib.progress",progress);
+  if(force) render();
+}
+function setIcon(playing){
+  $("playIco").innerHTML=playing?'<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>':'<path d="M8 5v14l11-7z"/>';
+  $("play").setAttribute("aria-label",playing?"Pausar":"Tocar");
+}
+function playNext(){
+  if(!cur) return;
+  const b=BOOKS.find(x=>x.n===cur.n), ks=partKeys(b), i=ks.indexOf(cur.p);
+  if(i<ks.length-1) start(b.n,ks[i+1],true);
+  else $("status").textContent="Fim do livro 🎉";
+}
+$("play").onclick=()=>audio.paused?audio.play():audio.pause();
+$("back").onclick=()=>{audio.currentTime=Math.max(0,audio.currentTime-15);};
+$("fwd").onclick=()=>{audio.currentTime=Math.min(audio.duration||0,audio.currentTime+30);};
+$("next").onclick=playNext;
+$("speed").textContent=SPEEDS[speedIdx]+"x";
+$("speed").onclick=()=>{speedIdx=(speedIdx+1)%SPEEDS.length;store.set("bib.speed",speedIdx);audio.playbackRate=SPEEDS[speedIdx];$("speed").textContent=SPEEDS[speedIdx]+"x";};
+const seek=$("seek");
+seek.addEventListener("input",()=>{seeking=true;if(audio.duration)$("tCur").textContent=fmt(seek.value/1000*audio.duration);});
+seek.addEventListener("change",()=>{if(audio.duration)audio.currentTime=seek.value/1000*audio.duration;seeking=false;});
+if("mediaSession" in navigator){
+  const ms=navigator.mediaSession;
+  ms.setActionHandler("play",()=>audio.play());
+  ms.setActionHandler("pause",()=>audio.pause());
+  ms.setActionHandler("seekbackward",()=>$("back").click());
+  ms.setActionHandler("seekforward",()=>$("fwd").click());
+  try{ms.setActionHandler("nexttrack",playNext);}catch(e){}
+}
+document.addEventListener("visibilitychange",()=>{if(document.hidden)save();});
+
+renderChips(); render();
+loadAudios().then(render);
+</script>
+</body>
+</html>
